@@ -31,8 +31,8 @@ def sobel(image):
     # 边缘检测
     H_y = np.array([[-1, -2, -1], [0, 0, 0], [1, 2, 1]])
     H_x = H_y.T
-    edge_x = filter(gray, H_x, 'replicate')
-    edge_y = filter(gray, H_y, 'replicate')
+    edge_x = filter(gray, H_x, padding='replicate', dtype='float32')
+    edge_y = filter(gray, H_y, padding='replicate', dtype='float32')
     edge_x = np.abs(edge_x)
     edge_y = np.abs(edge_y)
     edge = np.sqrt(edge_x ** 2 + edge_y ** 2)

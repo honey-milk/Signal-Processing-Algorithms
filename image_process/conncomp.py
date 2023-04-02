@@ -37,6 +37,7 @@ def bwlabel(bw, conn=4):
                 continue
             number += 1
             stack = [(y, x)]
+            label[y, x] = number
             while stack:
                 seed_y, seed_x = stack.pop()
                 for dx, dy in neighbors:

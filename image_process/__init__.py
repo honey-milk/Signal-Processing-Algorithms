@@ -6,7 +6,7 @@
 @Contact : xjhansgg@whu.edu.cn
 """
 
-from .filter import filter
+from .filter import filter, gaussian
 from .sobel import sobel
 from histeq import histeq, improved_histeq, imhist
 from conncomp import bwlabel, conncomp

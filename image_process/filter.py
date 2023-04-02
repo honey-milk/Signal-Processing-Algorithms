@@ -9,13 +9,14 @@
 import numpy as np
 
 
-def filter(image, kernel, padding='zero'):
+def filter(image, kernel, padding='zero', dtype=None):
     """
     image filter
 
     :param image: shape (H, W) or (H, W, C)
     :param kernel: shape (M, N)
     :param padding: ['zero', 'replicate', 'duplicate'], default: 'zero'
+    :param dtype: default: image.dtype
     :return:
         result: with the same shape as image
     """
@@ -29,6 +30,7 @@ def filter(image, kernel, padding='zero'):
     assert M % 2 == 1 and N % 2 == 1, 'M和N必须是奇数'
     assert padding in ['zero', 'replicate', 'duplicate'], 'padding not support'
     assert H >= M and W >= N, 'image size less than kernel size'
+    dtype = image.dtype if dtype is None else dtype
 
     # padding
     sy, sx = (M - 1) // 2, (N - 1) // 2
@@ -53,4 +55,24 @@ def filter(image, kernel, padding='zero'):
     for y in range(0, H):
         for x in range(0, W):
             result[y, x] = (kernel * padding_image[y:y + M, x:x + N]).sum()
+    result = result.astype(dtype)
+
     return result
+
+
+def gaussian(kernel_size, sigma=1.0):
+    """
+    Generate gaussian kernel
+
+    :param kernel_size:
+    :param sigma:
+    :return:
+    """
+    assert sigma > 0, 'sigma must greater than 0'
+    sigma_3 = 3 * sigma
+    xs = np.linspace(-sigma_3, sigma_3, kernel_size)
+    ys = np.linspace(-sigma_3, sigma_3, kernel_size)
+    ys, xs = np.meshgrid(ys, xs)
+    kernel = 1 / (2 * np.pi * sigma ** 2) * np.exp(- (xs ** 2 + ys ** 2) / (2 * sigma ** 2))
+    kernel /= kernel.sum()
+    return kernel
