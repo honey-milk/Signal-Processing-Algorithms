@@ -9,3 +9,4 @@
 from .filter import filter
 from .sobel import sobel
 from histeq import histeq, improved_histeq, imhist
+from conncomp import bwlabel, conncomp
