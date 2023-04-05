@@ -52,6 +52,63 @@ def bwlabel(bw, conn=4):
     return label
 
 
+def bwboundary(bw, conn=4):
+    """
+    Extract boundary
+
+    :param bw: shape (H, W)
+    :param conn: 4 or 8, default: 4
+    :return:
+        boundary
+    """
+    assert len(bw.shape) == 2, '输入图像BW必须为二值图'
+    assert conn in [4, 8], '参数conn必须为4或8'
+
+    if conn == 4:
+        neighbors = np.array([[-1, 0], [0, -1], [1, 0], [0, 1]])
+    else:
+        neighbors = np.array([[-1, 0], [-1, -1], [0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1]])
+
+    # 寻找起始点
+    boundary = []
+    area = bw.sum()
+    if area == 0:
+        return boundary
+    else:
+        ys, xs = np.nonzero(bw)
+        index = np.argmax(xs)
+        x, y = xs[index], ys[index]
+        start_point = (x, y)
+        boundary.append(start_point)
+        if area == 1:
+            return np.array(boundary)
+        else:
+            last_point = start_point
+            neighbor_index = 0
+
+    # 遍历图像
+    H, W = bw.shape
+    finish = False
+    while not finish:
+        for i in range(conn):
+            current_index = (neighbor_index + conn // 2 + 1 + i) % conn
+            dy, dx = neighbors[current_index]
+            x2, y2 = last_point[0] + dx, last_point[1] + dy
+            if x2 < 0 or x2 >= W or y2 < 0 or y2 >= H:
+                continue
+            if bw[y2, x2]:
+                current_point = (x2, y2)
+                if current_point == start_point:
+                    finish = True
+                else:
+                    last_point = current_point
+                    boundary.append(current_point)
+                    neighbor_index = current_index
+                break
+
+    return np.array(boundary)
+
+
 def conncomp(bw, conn=4):
     """
     Find connected components in binary image
@@ -70,6 +127,7 @@ def conncomp(bw, conn=4):
     number = label.max()
     for i in range(number):
         mask = label == (i + 1)
+        boundary = bwboundary(mask, conn=conn)
         area = mask.sum()
         ys, xs = np.nonzero(mask)
         center = np.array([xs.mean(), ys.mean()])
@@ -83,7 +141,8 @@ def conncomp(bw, conn=4):
         info = {
             'area': area,
             'center': center,
-            'bbox': bbox
+            'bbox': bbox,
+            'boundary': boundary
         }
         infos.append(info)
 
@@ -104,7 +163,7 @@ def conncomp_demo(src_file, dst_file):
     bw = cv2.threshold(gray, 0, 255, cv2.THRESH_OTSU)[1]
 
     # 连通域检测
-    label, infos = conncomp(bw)
+    label, infos = conncomp(bw, conn=4)
 
     # 可视化
     result = np.zeros_like(image)
@@ -117,12 +176,16 @@ def conncomp_demo(src_file, dst_file):
         area = info['area']
         center = info['center'].astype('int32')
         bbox = info['bbox']
+        boundary = info['boundary']
         cv2.circle(image, center, 2, color=color, thickness=-1)
         pt1 = (bbox[0], bbox[1])
         pt2 = (bbox[0] + bbox[2], bbox[1] + bbox[3])
         cv2.rectangle(image, pt1, pt2, color=color, thickness=1)
         cv2.putText(image, str(area), (center[0], center[1] - 5), color=color,
                     fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.4, thickness=1)
+        for pt in boundary:
+            pt = (pt[0], pt[1])
+            cv2.rectangle(image, pt, pt, color=color, thickness=1)
 
     image = np.hstack([image, result])
     cv2.namedWindow('image', 0)
