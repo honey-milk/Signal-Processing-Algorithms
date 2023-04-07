@@ -11,3 +11,4 @@ from .sobel import sobel
 from histeq import histeq, improved_histeq, imhist
 from conncomp import bwlabel, conncomp, bwboundary
 from similarity import similarity
+from seedfill import seed_fill
