@@ -52,6 +52,31 @@ def seed_fill(bw, seeds, conn=4):
     return label
 
 
+def flood_fill(image, seeds, newval, thresh, conn=4):
+    """
+    Flood filling
+
+    :param image: shape (H, W, 3) or (H, W)
+    :param seeds: shape (N, 2)
+    :param newval: filled color
+    :param thresh: type: int or list with shape (3)
+    :param conn: 4 or 8, default: 4
+    :return:
+        result: with the same shape as input image
+    """
+    result = image.copy()
+    image = image.astype('int32')
+    bw = np.zeros(image.shape[:2], dtype='bool')
+    for seed in seeds:
+        x, y = seed
+        value = image[y, x]
+        bw |= (np.abs(image - value) <= thresh).all(axis=-1)
+        mask = seed_fill(bw, seeds, conn)
+        result[mask] = newval
+
+    return result
+
+
 def seed_fill_demo(src_file, dst_file):
     """
     Seed filling demo
@@ -80,7 +105,31 @@ def seed_fill_demo(src_file, dst_file):
     cv2.imwrite(dst_file, image)
 
 
+def flood_fill_demo(src_file, dst_file):
+    """
+    Flood filling demo
+
+    :param src_file:
+    :param dst_file:
+    :return:
+    """
+    image = cv2.imread(src_file)
+
+    # 种子填充
+    seeds = np.array([[371, 279]])
+    result = flood_fill(image, seeds, newval=[0, 255, 0], thresh=10, conn=4)
+
+    # 可视化
+    image = np.hstack([image, result])
+    cv2.namedWindow('image', 0)
+    cv2.imshow('image', image)
+    cv2.waitKey()
+
+    # save image
+    cv2.imwrite(dst_file, image)
+
+
 if __name__ == '__main__':
-    src_file = 'E:/Signal-Processing-Algorithms/src/image/cc.jpg'
+    src_file = 'E:/Signal-Processing-Algorithms/src/image/floodfill.jpg'
     dst_file = 'result.jpg'
-    seed_fill_demo(src_file, dst_file)
+    flood_fill_demo(src_file, dst_file)
