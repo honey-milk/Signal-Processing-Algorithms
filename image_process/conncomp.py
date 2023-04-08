@@ -52,11 +52,13 @@ def bwlabel(bw, conn=4):
     return label
 
 
-def bwboundary(bw, conn=4):
+def _boundary_by_seed(bw, seed, dierction, conn=4):
     """
-    Extract boundary
+    Extract boundary by seed
 
     :param bw: shape (H, W)
+    :param seed: (x, y)
+    :param dierction: (dx, dy)
     :param conn: 4 or 8, default: 4
     :return:
         boundary
@@ -65,26 +67,24 @@ def bwboundary(bw, conn=4):
     assert conn in [4, 8], '参数conn必须为4或8'
 
     if conn == 4:
-        neighbors = np.array([[-1, 0], [0, -1], [1, 0], [0, 1]])
+        neighbors = [[-1, 0], [0, 1], [1, 0], [0, -1]]
     else:
-        neighbors = np.array([[-1, 0], [-1, -1], [0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1]])
+        neighbors = [[-1, 0], [-1, 1], [0, 1], [1, 1], [1, 0], [1, -1], [0, -1], [-1, -1]]
+    assert dierction in neighbors, '输入方向有误'
+    H, W = bw.shape[:2]
+    assert 0 <= seed[0] < W and 0 <= seed[1] < H and bw[seed[1], seed[0]], '种子点有误'
 
-    # 寻找起始点
+    # 初始化
     boundary = []
     area = bw.sum()
     if area == 0:
         return boundary
-    else:
-        ys, xs = np.nonzero(bw)
-        index = np.argmax(xs)
-        x, y = xs[index], ys[index]
-        start_point = (x, y)
-        boundary.append(start_point)
-        if area == 1:
-            return np.array(boundary)
-        else:
-            last_point = start_point
-            neighbor_index = 0
+    elif area == 1:
+        return np.array(seed)
+
+    boundary.append(seed)
+    last_point = seed
+    neighbor_index = neighbors.index(dierction)
 
     # 遍历图像
     H, W = bw.shape
@@ -92,13 +92,13 @@ def bwboundary(bw, conn=4):
     while not finish:
         for i in range(conn):
             current_index = (neighbor_index + conn // 2 + 1 + i) % conn
-            dy, dx = neighbors[current_index]
+            dx, dy = neighbors[current_index]
             x2, y2 = last_point[0] + dx, last_point[1] + dy
             if x2 < 0 or x2 >= W or y2 < 0 or y2 >= H:
                 continue
             if bw[y2, x2]:
                 current_point = (x2, y2)
-                if current_point == start_point:
+                if current_point == seed:
                     finish = True
                 else:
                     last_point = current_point
@@ -107,6 +107,53 @@ def bwboundary(bw, conn=4):
                 break
 
     return np.array(boundary)
+
+
+def bwboundary(bw, conn=4):
+    """
+    Extract boundary
+
+    :param bw: shape (H, W)
+    :param conn: 4 or 8, default: 4
+    :return:
+        boundaries
+    """
+    assert len(bw.shape) == 2, '输入图像BW必须为二值图'
+    assert bw.sum(), '输入图像非零像素个数不能为0'
+
+    seeds = []
+    directions = []
+
+    # 寻找外轮廓起始点
+    ys, xs = np.nonzero(bw)
+    index = np.argmax(xs)
+    x, y = xs[index], ys[index]
+    seeds.append((x, y))
+    directions.append([0, -1])
+
+    # 寻找内轮廓起始点
+    H, W = bw.shape
+    padding_bw = np.zeros((H + 2, W + 2), dtype=bw.dtype)
+    padding_bw[1:-1, 1:-1] = bw
+    padding_bw = padding_bw == 0
+    label = bwlabel(padding_bw, conn=4)
+    for i in range(1, label.max() + 1):
+        mask = label == i
+        ys, xs = np.nonzero(mask)
+        index = np.argmax(xs)
+        x, y = xs[index] + 1, ys[index]
+        if x >= W + 2:
+            continue
+        seeds.append((x - 1, y - 1))
+        directions.append([0, 1])
+
+    # 寻找内外轮廓
+    boundaries = []
+    for seed, direction in zip(seeds, directions):
+        boundary = _boundary_by_seed(bw, seed, direction, conn)
+        boundaries.append(boundary)
+
+    return boundaries
 
 
 def conncomp(bw, conn=4):
@@ -127,7 +174,7 @@ def conncomp(bw, conn=4):
     number = label.max()
     for i in range(number):
         mask = label == (i + 1)
-        boundary = bwboundary(mask, conn=conn)
+        boundaries = bwboundary(mask, conn=conn)
         area = mask.sum()
         ys, xs = np.nonzero(mask)
         center = np.array([xs.mean(), ys.mean()])
@@ -142,7 +189,7 @@ def conncomp(bw, conn=4):
             'area': area,
             'center': center,
             'bbox': bbox,
-            'boundary': boundary
+            'boundaries': boundaries
         }
         infos.append(info)
 
@@ -176,16 +223,17 @@ def conncomp_demo(src_file, dst_file):
         area = info['area']
         center = info['center'].astype('int32')
         bbox = info['bbox']
-        boundary = info['boundary']
-        cv2.circle(image, center, 2, color=color, thickness=-1)
-        pt1 = (bbox[0], bbox[1])
-        pt2 = (bbox[0] + bbox[2], bbox[1] + bbox[3])
-        cv2.rectangle(image, pt1, pt2, color=color, thickness=1)
-        cv2.putText(image, str(area), (center[0], center[1] - 5), color=color,
-                    fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.4, thickness=1)
-        for pt in boundary:
-            pt = (pt[0], pt[1])
-            cv2.rectangle(image, pt, pt, color=color, thickness=1)
+        boundaries = info['boundaries']
+        # cv2.circle(image, center, 2, color=color, thickness=-1)
+        # pt1 = (bbox[0], bbox[1])
+        # pt2 = (bbox[0] + bbox[2], bbox[1] + bbox[3])
+        # cv2.rectangle(image, pt1, pt2, color=color, thickness=1)
+        # cv2.putText(image, str(area), (center[0], center[1] - 5), color=color,
+        #             fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.4, thickness=1)
+        for boundary in boundaries:
+            for pt in boundary:
+                pt = (pt[0], pt[1])
+                cv2.rectangle(image, pt, pt, color=color, thickness=1)
 
     image = np.hstack([image, result])
     cv2.namedWindow('image', 0)
