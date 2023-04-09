@@ -24,7 +24,7 @@ def saliency_detect(image, threshold=0):
 
     # 转灰度图
     if len(image.shape) == 2:
-        gray = image
+        gray = image.copy()
     else:
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 

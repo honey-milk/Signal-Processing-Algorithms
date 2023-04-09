@@ -27,7 +27,7 @@ def imhist(image, weight=None):
 
     # 转灰度图
     if len(image.shape) == 2:
-        gray = image
+        gray = image.copy()
     else:
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
@@ -54,7 +54,7 @@ def histeq(image):
     assert len(image.shape) in [2, 3], '图像形状的维度必须为2或3'
     # 转灰度图
     if len(image.shape) == 2:
-        gray = image
+        gray = image.copy()
     else:
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
@@ -85,7 +85,7 @@ def improved_histeq(image):
     assert len(image.shape) in [2, 3], '图像形状的维度必须为2或3'
     # 转灰度图
     if len(image.shape) == 2:
-        gray = image
+        gray = image.copy()
     else:
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 

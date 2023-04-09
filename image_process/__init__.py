@@ -13,3 +13,5 @@ from conncomp import bwlabel, conncomp, bwboundary
 from similarity import similarity
 from seedfill import seed_fill, flood_fill
 from ostuthresh import ostuthresh
+from globalthresh import global_thresh
+from movingthresh import moving_thresh

@@ -1,19 +1,20 @@
 # -*- coding: utf-8 -*-
 """
-@File    : ostuthresh.py
-@Time    : 2023/4/9 12:03:20
+@File    : globalthresh.py
+@Time    : 2023/4/9 21:27:16
 @Author  : xjhan
 @Contact : xjhansgg@whu.edu.cn
 """
+
 import cv2
 import numpy as np
-from image_process import imhist
 
 
-def ostuthresh(image):
+def global_thresh(image, delta=0.5):
     """
 
     :param image: shape (H, W) or (H, W, 3)
+    :param delta:
     :return:
         thresh
     """
@@ -24,27 +25,25 @@ def ostuthresh(image):
     else:
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-    # 计算归一化直方图
-    hist = imhist(gray)
-    hist = hist / hist.sum()
+    # 初始阈值
+    thresh = gray.mean()
 
-    # 求累计概率分布
-    hist_sum = np.cumsum(hist)
+    # 迭代完成标记
+    done = False
 
-    # 求累计均值
-    ave_sum = np.cumsum(np.arange(256) * hist)
-
-    # 计算类间方差
-    sigma2 = ((ave_sum[-1] * hist_sum) - ave_sum) ** 2 / (hist_sum * (1 - hist_sum) + 1e-10)
-
-    # 求最佳阈值
-    indices = np.nonzero(sigma2 == sigma2.max())
-    thresh = indices[0].mean()
+    while not done:
+        mask = gray > thresh
+        if mask.sum() == 0 or (~mask).sum() == 0:
+            break
+        thresh_next = 0.5 * (gray[mask].mean() + gray[~mask].mean())
+        if np.abs(thresh_next - thresh) < delta:
+            done = True
+        thresh = thresh_next
 
     return thresh
 
 
-def ostuthresh_demo(src_file, dst_file):
+def globalthresh_demo(src_file, dst_file):
     """
     OSTU threshold demo
 
@@ -54,8 +53,8 @@ def ostuthresh_demo(src_file, dst_file):
     """
     image = cv2.imread(src_file)
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    thresh = ostuthresh(gray)
-    result = ((gray > thresh) * 255).astype('uint8')
+    thresh = global_thresh(gray)
+    result = ((gray >= thresh) * 255).astype('uint8')
     result2 = cv2.threshold(gray, 0, 255, cv2.THRESH_OTSU)[1]
 
     # show
@@ -71,4 +70,4 @@ def ostuthresh_demo(src_file, dst_file):
 if __name__ == '__main__':
     src_file = 'E:/Signal-Processing-Algorithms/src/image/Fig1019(a).tif'
     dst_file = 'result.jpg'
-    ostuthresh_demo(src_file, dst_file)
+    globalthresh_demo(src_file, dst_file)
