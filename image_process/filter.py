@@ -9,7 +9,45 @@
 import numpy as np
 
 
-def filter(image, kernel, padding='zero', dtype=None):
+def filter1d(x, kernel, padding='zero', dtype=None):
+    """
+    image filter
+
+    :param x: shape (N)
+    :param kernel: shape (M)
+    :param padding: ['zero', 'replicate', 'duplicate'], default: 'zero'
+    :param dtype: default: x.dtype
+    :return:
+        y: with the same shape as x
+    """
+    N = len(x)
+    M = len(kernel)
+    assert M % 2 == 1, 'M必须是奇数'
+    assert padding in ['zero', 'replicate', 'duplicate'], 'padding not support'
+    assert N >= M, 'x size less than kernel size'
+    dtype = x.dtype if dtype is None else dtype
+
+    # padding
+    si = (M - 1) // 2
+    padding_x = np.zeros((N + M - 1), dtype='float32')
+    padding_x[si:-si] = x
+    if padding == 'replicate':
+        padding_x[:si] = padding_x[si:2 * si][::-1]
+        padding_x[-si:] = padding_x[-2 * si - 1: -si - 1][::-1]
+    elif padding == 'duplicate':
+        padding_x[:si] = padding_x[si]
+        padding_x[-si:] = padding_x[-si - 1]
+
+    # filter
+    y = np.zeros_like(x, dtype='float32')
+    for i in range(0, N):
+        y[i] = (kernel * padding_x[i:i + M]).sum()
+    y = y.astype(dtype)
+
+    return y
+
+
+def filter2d(image, kernel, padding='zero', dtype=None):
     """
     image filter
 
@@ -60,7 +98,7 @@ def filter(image, kernel, padding='zero', dtype=None):
     return result
 
 
-def gaussian(kernel_size, sigma=1.0):
+def gaussian2d(kernel_size, sigma=1.0):
     """
     Generate gaussian kernel
 

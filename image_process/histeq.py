@@ -9,7 +9,7 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-from image_process import filter
+from image_process import filter2d
 from image_process import sobel
 
 
@@ -94,10 +94,10 @@ def improved_histeq(image):
     kernel_y2 = kernel_y1[::-1]
     kernel_x1 = kernel_y1.T
     kernel_x2 = kernel_y2.T
-    grad_y1 = filter(gray, kernel_y1)
-    grad_y2 = filter(gray, kernel_y2)
-    grad_x1 = filter(gray, kernel_x1)
-    grad_x2 = filter(gray, kernel_x2)
+    grad_y1 = filter2d(gray, kernel_y1)
+    grad_y2 = filter2d(gray, kernel_y2)
+    grad_x1 = filter2d(gray, kernel_x1)
+    grad_x2 = filter2d(gray, kernel_x2)
 
     # 正梯度有效
     grad_y1 = np.clip(grad_y1, 0, None)

@@ -7,7 +7,7 @@
 """
 import cv2
 import numpy as np
-from image_process import filter, conncomp, gaussian
+from image_process import filter2d, conncomp, gaussian2d
 
 
 def saliency_detect(image, threshold=0):
@@ -35,7 +35,7 @@ def saliency_detect(image, threshold=0):
 
     # 对幅度谱做均值滤波
     kernel = np.full((3, 3), 1 / 9)
-    smoothed_log_amplitude = filter(log_amplitude, kernel, 'replicate')
+    smoothed_log_amplitude = filter2d(log_amplitude, kernel, 'replicate')
 
     # 计算幅度谱残差
     spectral_residual = log_amplitude - smoothed_log_amplitude
@@ -47,8 +47,8 @@ def saliency_detect(image, threshold=0):
     saliency_map = (saliency_map * 255).astype('uint8')
 
     # 二值化
-    kernel = gaussian(11, 2.5)
-    saliency_map = filter(saliency_map, kernel)
+    kernel = gaussian2d(11, 2.5)
+    saliency_map = filter2d(saliency_map, kernel)
     bw = (saliency_map >= 2 * saliency_map.mean()).astype('uint8') * 255
 
     # 连通域处理
