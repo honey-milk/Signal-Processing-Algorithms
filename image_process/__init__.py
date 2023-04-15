@@ -12,9 +12,7 @@ from histeq import histeq, improved_histeq, imhist
 from conncomp import bwlabel, conncomp, bwboundary
 from similarity import similarity
 from seedfill import seed_fill, flood_fill
-from binarize import threshold
+from binarize import (threshold, THRESH_OTSU, THRESH_GLOBAL,
+                      THRESH_LOCAL, THRESH_MOVING, THRESH_KMEANS)
 
-THRESH_OTSU = 1
-THRESH_GLOBAL = 2
-THRESH_LOCAL = 3
-THRESH_MOVING = 4
+
