@@ -11,6 +11,7 @@ import numpy as np
 from scipy.ndimage.filters import generic_filter
 from image_process import imhist, filter1d, filter2d
 from kmeans import KMeans
+from gmm import GMM
 
 
 THRESH_OTSU = 1
@@ -18,6 +19,7 @@ THRESH_GLOBAL = 2
 THRESH_LOCAL = 3
 THRESH_MOVING = 4
 THRESH_KMEANS = 5
+THRESH_GMM = 6
 
 
 def ostu_thresh(image):
@@ -200,6 +202,43 @@ def kmeans_thresh(image, K=2, **kwargs):
     return gray
 
 
+def gmm_thresh(image, K=2, num_gaussian=1, **kwargs):
+    """
+    gmm threshold
+
+    :param image: shape (H, W) or (H, W, 3)
+    :param K:
+    :return:
+        result: shape (H, W)
+    """
+    assert len(image.shape) in [2, 3], '图像形状的维度必须为2或3'
+    # 转灰度图
+    if len(image.shape) == 2:
+        gray = image.copy()
+    else:
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    H, W = gray.shape
+
+    # 输入图像f处理
+    gray = gray.reshape((-1, 1))
+    gray = gray.astype('float32')
+
+    # K-means聚类
+    gray_rank = np.linspace(0, 255, K)
+    gmm = GMM(n_clusters=K, num_gaussian=num_gaussian)
+    label = gmm.fit(gray)
+
+    # k值化
+    for i in range(K):
+        gray[label == i] = gray_rank[i]
+
+    # 向量转为矩阵
+    gray = gray.reshape((H, W)).astype('uint8')
+
+    return gray
+
+
 def threshold(image, maxval=255, type=THRESH_OTSU, **kwargs):
     """
     threshold
@@ -212,7 +251,7 @@ def threshold(image, maxval=255, type=THRESH_OTSU, **kwargs):
         result: shape (H, W)
     """
     assert type in [THRESH_OTSU, THRESH_GLOBAL, THRESH_LOCAL,
-                    THRESH_MOVING, THRESH_KMEANS], '类型不支持'
+                    THRESH_MOVING, THRESH_KMEANS, THRESH_GMM], '类型不支持'
     assert len(image.shape) in [2, 3], '图像形状的维度必须为2或3'
     # 转灰度图
     if len(image.shape) == 2:
@@ -234,6 +273,8 @@ def threshold(image, maxval=255, type=THRESH_OTSU, **kwargs):
         result = result.astype('uint8') * maxval
     elif type == THRESH_KMEANS:
         result = kmeans_thresh(image, **kwargs)
+    elif type == THRESH_GMM:
+        result = gmm_thresh(image, **kwargs)
     else:
         result = None
 
@@ -250,16 +291,17 @@ def binarization_demo(src_file, dst_file):
     """
     image = cv2.imread(src_file)
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    result = cv2.threshold(gray, 0, 255, cv2.THRESH_OTSU)[1]
-    result1 = threshold(gray, type=THRESH_OTSU)
-    result2 = threshold(gray, type=THRESH_GLOBAL, delta=0.5)
-    result3 = threshold(gray, type=THRESH_LOCAL, kernel_size=3, alpha=30, belta=1, meantype='local')
-    result4 = threshold(gray, type=THRESH_MOVING, kernel_size=3, K=0.5)
-    result5 = threshold(gray, type=THRESH_KMEANS, K=5)
+    # result = cv2.threshold(gray, 0, 255, cv2.THRESH_OTSU)[1]
+    # result1 = threshold(gray, type=THRESH_OTSU)
+    # result2 = threshold(gray, type=THRESH_GLOBAL, delta=0.5)
+    # result3 = threshold(gray, type=THRESH_LOCAL, kernel_size=3, alpha=30, belta=1, meantype='local')
+    # result4 = threshold(gray, type=THRESH_MOVING, kernel_size=3, K=0.5)
+    # result5 = threshold(gray, type=THRESH_KMEANS, K=2)
+    result6 = threshold(gray, type=THRESH_GMM, K=2, num_gaussian=1)
 
     # show
-    # image = np.hstack([gray, result5])
-    image = np.hstack([gray, result, result1, result2, result3, result4, result5])
+    image = np.hstack([gray, result6])
+    # image = np.hstack([gray, result, result1, result2, result3, result4, result5])
     cv2.namedWindow('image', 0)
     cv2.imshow('image', image)
     cv2.waitKey()
