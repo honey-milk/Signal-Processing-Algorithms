@@ -7,4 +7,4 @@
 """
 from filter import filter1d, filter2d, gaussian2d
 from wiener_filter import wiener_filter
-from lms_filter import lms_filter
+from adaptive_filter import lms_filter, rls_filter
