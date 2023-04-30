@@ -17,7 +17,7 @@ if isvector(y)
 end
 
 %% º∆À„æ‡¿Îæÿ’Û
-m = size(x,1);
+m = sixxx         x ze(x,1);
 n = size(y,1);
 distMatrix = ones(m+1,n+1)*realmax;
 distMatrix(1,1) = 0;
